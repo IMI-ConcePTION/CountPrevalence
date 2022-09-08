@@ -1,0 +1,14 @@
+preg_id,person_id,timeframe,age_at_preg_start,in_population,prev_epilepsia,prev_depression_prev_asthma
+PREG_01,P00000001,preg_start,37,1,1,0,0
+PREG_01,P00000001,preg_end,37,1,1,0,0
+PREG_02,P00000002,preg_start,32,1,0,0,0          
+PREG_02,P00000002,preg_end,32,1,0,0,0          
+PREG_03,P00000003,preg_start,29,1,0,0,0
+PREG_03,P00000003,preg_end,29,1,0,0,0
+PREG_04,P00000004,preg_start,25,1,0,0,0
+PREG_04,P00000004,preg_end,28,1,0,0,0
+PREG_05,P00000004,preg_start,28,1,0,0,1
+PREG_05,P00000004,preg_end,28,1,0,0,1
+PREG_06,P00000005,preg_start,32,1,0,0,0
+PREG_06,P00000005,preg_start,32,1,0,0,0
+                                                        
