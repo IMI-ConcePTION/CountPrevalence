@@ -1,0 +1,9 @@
+person_id,date_dispensing,type_of_medicine
+P00000001,2015-11-01,antiepileptic
+P00000001,2018-12-18,antiepileptic
+P00000001,2018-12-29,antidepressant
+P00000001,2019-03-24,antiepileptic
+P00000001,2019-06-09,antiepileptic
+P00000002,2019-03-13,antidepressant
+P00000004,2019-01-23,antiasthma
+P00000004,2019-01-25,analgesic

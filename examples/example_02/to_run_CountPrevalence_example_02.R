@@ -22,13 +22,13 @@ library(lubridate)
 
 #load input
 cohort <- fread(paste0(thisdir,"/input/cohort.csv"), sep = ",")
-conditions <- fread(paste0(thisdir,"/input/conditions.csv"), sep = ",")
+conditions <- fread(paste0(thisdir,"/input/medicines.csv"), sep = ",")
 
-date_cols <- c("start_date","end_date","date_birth")
+date_cols <- c("preg_start","tri1_end","tri2_start","tri2_end","tri3_start","tri3_end","preg_end")
 conditions[,(date_cols) := lapply(.SD,function(x) (as.character(x))),.SDcols = date_cols]
 conditions[,(date_cols) := lapply(.SD,function(x) (as.Date(x,"%Y%m%d"))),.SDcols = date_cols]
-cohort[,date_event := as.character(date_event)]
-cohort[,date_event:= as.Date(date_event,"%Y%m%d")]
+cohort[,date_dispensing := as.character(date_dispensing)]
+cohort[,date_dispensing:= as.Date(date_dispensing,"%Y%m%d")]
 
 
 #USE THE FUNCTION 
@@ -37,14 +37,14 @@ prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        Dataset_events = conditions,
                                        UoO_id = c("PREG_ID"),
                                        key = c("person_id"),
-                                       Type_prevalence = "point",
-                                       Points_in_time = c("preg_start","preg_end"),
+                                       Type_prevalence = "of use",
+                                       Periods_of_time = list(list(preg_start,tri1_end),list(tri2_start,tri2_end),list(tri3_start,tri3_end)),
                                        Start_date = "preg_start",
                                        End_date = "preg_end",
-                                       Name_condition = "condition",
-                                       Date_dondition = "date_condition",
-                                       Conditions = c("epilepsia","depression","asthma"),
-                                       strata = c("age_at_preg_start"),
+                                       Name_condition = "type_of_medicine",
+                                       Date_dondition = "date_dispensing",
+                                       Conditions = c("antiepileptic","antidepressant","antiasthma"),
+                                       strata = c("region_at_pregnancy_start"),
                                        Aggregate = FALSE
                                        )
 
