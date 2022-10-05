@@ -24,27 +24,27 @@ library(lubridate)
 cohort <- fread(paste0(thisdir,"/input/cohort.csv"), sep = ",")
 conditions <- fread(paste0(thisdir,"/input/conditions.csv"), sep = ",")
 
-date_cols <- c("entry_date","exit_date")
+date_cols <- c("start_date","end_date","date_birth")
 conditions[,(date_cols) := lapply(.SD,function(x) (as.character(x))),.SDcols = date_cols]
 conditions[,(date_cols) := lapply(.SD,function(x) (as.Date(x,"%Y%m%d"))),.SDcols = date_cols]
-cohort[,date_event := as.character(cond_date)]
-cohort[,date_event:= as.Date(cond_date,"%Y%m%d")]
+cohort[,date_event := as.character(date_event)]
+cohort[,date_event:= as.Date(date_event,"%Y%m%d")]
 
 
 #USE THE FUNCTION 
 
 prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        Dataset_events = conditions,
-                                       UoO_id = c("person_id"),
+                                       UoO_id = c("PREG_ID"),
+                                       key = c("person_id"),
                                        Type_prevalence = "point",
-                                       Increment_period = "year",
-                                       Start_study_time = "20190101",
-                                       End_study_time = "20221231",
-                                       Start_date = "entry_date",
-                                       End_date = "exit_date",
-                                       Name_condition = "cond_name",
-                                       Date_dondition = "cond_date",
-                                       Conditions = c("hypertension"),
+                                       Points_in_time = c("preg_start","preg_end"),
+                                       Start_date = "preg_start",
+                                       End_date = "preg_end",
+                                       Name_condition = "condition",
+                                       Date_dondition = "date_condition",
+                                       Conditions = c("epilepsia","depression","asthma"),
+                                       strata = c("age_at_preg_start"),
                                        Aggregate = FALSE
                                        )
 
