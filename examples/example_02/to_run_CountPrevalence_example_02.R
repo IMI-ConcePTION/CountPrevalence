@@ -53,13 +53,9 @@ prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        UoO_id = c("preg_id"),
                                        key = c("person_id"),
                                        Type_prevalence = "of use",
-<<<<<<< HEAD
                                        Periods_of_time = list(c("preg_start","tri1_end"),c("tri2_start","tri2_end"),c("tri3_start","tri3_end")),
                                        Start_study_time = "20100101",
                                        End_study_time = "20211231",
-=======
-                                       Periods_of_time = list(list("preg_start","tri1_end"),list("tri2_start","tri2_end"),list("tri3_start","tri3_end")),
->>>>>>> 465326288e4a2ac4615874a391eb8b9bf0338754
                                        Start_date = "preg_start",
                                        End_date = "preg_end",
                                        Start_study_time = "20100101",
@@ -72,3 +68,5 @@ prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        )
 
 
+
+#Periods_of_time = list(list("preg_start","tri1_end"),list("tri2_start","tri2_end"),list("tri3_start","tri3_end")),
