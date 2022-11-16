@@ -124,20 +124,34 @@ CountPrevalence<-function(Dataset_cohort, Dataset_events, UoO_id,key=NULL,Start_
   # }
   
   ##########################################
-
-if (Type_prevalence == "point" && (!is.null(Increment) &  Increment== "year")) {
+#&& (!is.null(Increment) &  Increment== "year")
+if (Type_prevalence == "point") {
   if (is.null(Points_in_time)){
-
     #Points_in_time<-c()
-    if (Increment== "year") {
-      points_in_time<-ymd(paste0(seq(year(Start_study_time),year(End_study_time)),"0101"))
+    if (Increment!= "month") {
+      Points_in_time<-seq.Date(Start_study_time,End_study_time ,by = Increment)
+    }else{
+      n_month<-floor(interval(ymd(20210112), ymd(20211214)) / months(1))
+      Points_in_time<-add_with_rollback(Start_study_time, months(1:n_month), roll_to_first = F)
+      ##controlla se minore di end_study
+    }
+      # seq(as.Date(Start_study_time,"%Y%m%d"),as.Date(End_study_time,"%Y%m%d")  , by="month")
+      # max_per_month <- ceiling_date( seq(as.Date(paste0(year(Start_study_time),"-",month(Start_study_time),"-","01"),"%Y-%m-%d"),as.Date(End_study_time,"%Y%m%d")  , by="month"), 'month') %m-% days(1)
+      #aggiungi +1 al mese da start a end
+      #se il giorno è > del massimo per quel mese
+  }
+      
+browser()
+      
+
+      #points_in_time<-ymd(paste0(seq(year(Start_study_time),year(End_study_time)),"0101"))
       Dataset_cohort<-rbindlist(lapply(points_in_time, function(x) data.frame(Dataset_cohort, value=x)))
 
       #ymd(paste0(years,"0101"))
       #Points_in_time<-paste0("time_",years)
       #Dataset_cohort<-Dataset_cohort[,paste0("time_",years):=as.list(ymd(paste0(years,"0101")))]
-    }
-  }
+
+
   
 
   #expand.grid()
@@ -150,7 +164,7 @@ if (Type_prevalence == "point" && (!is.null(Increment) &  Increment== "year")) {
   Dataset_cohort<-Dataset_cohort[value<=get(End_date) & value>=get(Start_date), in_population:=1 ]
   
   if(!is.null(key)) {
-    dataset<-merge(Dataset_cohort,Dataset_events, by=key,,all.x=T,allow.cartesian=T)
+    dataset<-merge(Dataset_cohort,Dataset_events, by=key,all.x=T,allow.cartesian=T)
   }else{
    dataset<-merge(Dataset_cohort,Dataset_events, by=UoO_id,all.x=T,allow.cartesian=T )
   }
