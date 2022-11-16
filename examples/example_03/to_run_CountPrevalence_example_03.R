@@ -1,5 +1,5 @@
 #-------------------------------
-# example 1:
+# example 3:
 
 rm(list=ls(all.names=TRUE))
 
@@ -12,7 +12,9 @@ dirinput <- paste0(thisdir,"/input/")
 diroutput <- paste0(thisdir,"/output/")
 
 #load function
-source(paste0(thisdir,"/../CountPrevalence.R"))
+setwd('..')
+setwd('..')
+source("CountPrevalence.R")
 
 # load data.table
 if (!require("data.table")) install.packages("data.table")
@@ -24,11 +26,15 @@ library(lubridate)
 cohort <- fread(paste0(thisdir,"/input/cohort.csv"), sep = ",")
 conditions <- fread(paste0(thisdir,"/input/conditions.csv"), sep = ",")
 
-date_cols <- c("entry_date","exit_date")
-conditions[,(date_cols) := lapply(.SD,function(x) (as.character(x))),.SDcols = date_cols]
-conditions[,(date_cols) := lapply(.SD,function(x) (as.Date(x,"%Y%m%d"))),.SDcols = date_cols]
-cohort[,date_event := as.character(cond_date)]
-cohort[,date_event:= as.Date(cond_date,"%Y%m%d")]
+date_cols <- c("entry_date","exit_date","birth_date")
+
+cohort[,(date_cols) := lapply(.SD,as.character),.SDcols = date_cols]
+cohort[,(date_cols) := lapply(.SD,as.Date),.SDcols = date_cols]
+
+date_cond<-c("cond_date")
+conditions[,(date_cond) := lapply(.SD,as.character),.SDcols = date_cond]
+conditions[,(date_cond) := lapply(.SD,as.Date),.SDcols = date_cond]
+
 
 
 #USE THE FUNCTION 
@@ -46,9 +52,9 @@ prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        Age_bands = c(15, 20, 25, 30, 35, 40, 45),
                                        include_remaning_ages = FALSE,
                                        Name_condition = "cond_name",
-                                       Date_dondition = "cond_date",
+                                       Date_condition = "cond_date",
                                        Conditions = c("multiple sclerosis"),
                                        Aggregate = FALSE
-                                       )
+)
 
 

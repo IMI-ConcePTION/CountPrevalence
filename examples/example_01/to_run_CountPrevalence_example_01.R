@@ -12,7 +12,10 @@ dirinput <- paste0(thisdir,"/input/")
 diroutput <- paste0(thisdir,"/output/")
 
 #load function
-source(paste0(thisdir,"/../CountPrevalence.R"))
+setwd('..')
+setwd('..')
+source("CountPrevalence.R")
+
 
 # load data.table
 if (!require("data.table")) install.packages("data.table")
@@ -25,27 +28,33 @@ cohort <- fread(paste0(thisdir,"/input/cohort.csv"), sep = ",")
 conditions <- fread(paste0(thisdir,"/input/conditions.csv"), sep = ",")
 
 date_cols <- c("entry_date","exit_date")
-conditions[,(date_cols) := lapply(.SD,function(x) (as.character(x))),.SDcols = date_cols]
-conditions[,(date_cols) := lapply(.SD,function(x) (as.Date(x,"%Y%m%d"))),.SDcols = date_cols]
-cohort[,date_event := as.character(cond_date)]
-cohort[,date_event:= as.Date(cond_date,"%Y%m%d")]
+cohort[,(date_cols) := lapply(.SD,as.character),.SDcols = date_cols]
+cohort[,(date_cols) := lapply(.SD,as.Date),.SDcols = date_cols]
+
+
+#prova<-dcast(setDT(conditions), person_id ~  cond_name, value.var= "cond_date")
+
+# conditions[,cond_date := as.character(cond_date)]
+# conditions[,cond_date:= as.Date(cond_date)]
 
 
 #USE THE FUNCTION 
+
+#specificare Increment_period o Periods_of_time
 
 prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        Dataset_events = conditions,
                                        UoO_id = c("person_id"),
                                        Type_prevalence = "point",
-                                       Increment_period = "year",
+                                       Increment = "year",
                                        Start_study_time = "20190101",
                                        End_study_time = "20221231",
                                        Start_date = "entry_date",
                                        End_date = "exit_date",
                                        Name_condition = "cond_name",
-                                       Date_dondition = "cond_date",
-                                       Conditions = c("hypertension"),
+                                       Date_condition = "cond_date",
+                                       Conditions = c("hypertension","cardiovascular disease"),
                                        Aggregate = FALSE
-                                       )
+)
 
 
