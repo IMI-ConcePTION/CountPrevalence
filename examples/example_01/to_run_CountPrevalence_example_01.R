@@ -47,14 +47,15 @@ prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        UoO_id = c("person_id"),
                                        Type_prevalence = "point",
                                        Increment = "year",
+                                       #Points_in_time = c("entry_date","exit_date"),
                                        Start_study_time = "20190101",
-                                       End_study_time = "20221231",
+                                       End_study_time = "20220101",
                                        Start_date = "entry_date",
                                        End_date = "exit_date",
                                        Name_condition = "cond_name",
                                        Date_condition = "cond_date",
-                                       Conditions = c("hypertension","cardiovascular disease"),
-                                       Aggregate = FALSE
+                                       Conditions = c("hypertension","cardiovascular diseaese"),
+                                       Aggregate = T
 )
 
 

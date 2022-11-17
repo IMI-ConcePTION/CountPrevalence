@@ -104,6 +104,13 @@ CountPrevalence<-function(Dataset_cohort, Dataset_events, UoO_id,key=NULL,Start_
   Dataset_cohort<-Dataset_cohort[no_overlap!=1 | is.na(no_overlap),]
   Dataset_cohort<-Dataset_cohort[,no_overlap:=NULL]
   ####################################################
+  
+  
+  
+  #check all strings in the parameter conditions are in the unique(columns names) #######
+  
+  
+  #######################
 
   #Compute statistics of censored persons which have spells ending before the START of the period or the point prevalence date.
   # browser()
@@ -130,128 +137,159 @@ if (Type_prevalence == "point") {
     #Points_in_time<-c()
     if (Increment!= "month") {
       Points_in_time<-seq.Date(Start_study_time,End_study_time ,by = Increment)
+      if (Increment=="week") min_days_distance<-7
+      if (Increment=="year") min_days_distance<-365
+      diff<-as.numeric(difftime(End_study_time,tail(Points_in_time, n=1),units = "days"))
+      if (diff<7 & diff!=0) Points_in_time<-head(Points_in_time, - 1) 
     }else{
-      n_month<-floor(interval(ymd(20210112), ymd(20211214)) / months(1))
+      n_month<-floor(interval(Start_study_time, End_study_time) / months(1))
       Points_in_time<-add_with_rollback(Start_study_time, months(1:n_month), roll_to_first = F)
-      ##controlla se minore di end_study
+      Points_in_time<-c(Start_study_time,Points_in_time)
+      new_vector<-Points_in_time < End_study_time
+      Points_in_time<-Points_in_time[new_vector]
     }
-      # seq(as.Date(Start_study_time,"%Y%m%d"),as.Date(End_study_time,"%Y%m%d")  , by="month")
-      # max_per_month <- ceiling_date( seq(as.Date(paste0(year(Start_study_time),"-",month(Start_study_time),"-","01"),"%Y-%m-%d"),as.Date(End_study_time,"%Y%m%d")  , by="month"), 'month') %m-% days(1)
-      #aggiungi +1 al mese da start a end
-      #se il giorno è > del massimo per quel mese
+  }else{
+      points<-c()
+      for (i in 1:length(Points_in_time)) {
+        if (Points_in_time[[i]] %in% colnames(Dataset_cohort)) {
+          points<-c(points,as.character(Dataset_cohort[[Points_in_time[[i]]]]))
+          }else{
+          stop("The column name provided in Points_in_time is not in the Dataset_cohort. Please check")
+        }
+        
+      }
+Points_in_time<-points
   }
-      
-browser()
-      
 
-      #points_in_time<-ymd(paste0(seq(year(Start_study_time),year(End_study_time)),"0101"))
-      Dataset_cohort<-rbindlist(lapply(points_in_time, function(x) data.frame(Dataset_cohort, value=x)))
-
-      #ymd(paste0(years,"0101"))
-      #Points_in_time<-paste0("time_",years)
-      #Dataset_cohort<-Dataset_cohort[,paste0("time_",years):=as.list(ymd(paste0(years,"0101")))]
+  Dataset_cohort<-rbindlist(lapply(Points_in_time, function(x) data.frame(Dataset_cohort, value=x)))
 
 
-  
-
-  #expand.grid()
-    # Dataset_cohort<-melt(setDT(Dataset_cohort), id.vars = c(UoO_id,key,Start_date,End_date,Strata), measure.vars = Points_in_time, variable.name = "timeframe")
-    ##add increment month, days
-
-
-  #print(Dataset_cohort)
   Dataset_cohort<-Dataset_cohort[, in_population:=0 ]
   Dataset_cohort<-Dataset_cohort[value<=get(End_date) & value>=get(Start_date), in_population:=1 ]
   
+  #create the object used as choosen key (between key and unit of observation)
   if(!is.null(key)) {
-    dataset<-merge(Dataset_cohort,Dataset_events, by=key,all.x=T,allow.cartesian=T)
+    choosen_key<-key
   }else{
-   dataset<-merge(Dataset_cohort,Dataset_events, by=UoO_id,all.x=T,allow.cartesian=T )
-  }
+    choosen_key<-UoO_id
+    }
+    
 
-  # name_nospaces<-gsub(" ", "",unique(Dataset_events[,get(Name_condition)]))
-  # browser()
-  # for(i in  name_nospaces){
-  #  name<-paste0("prev_",i)
-  #  dataset[,(name):=0]
-  #  dataset[,c(Name_condition) := lapply(.SD, function(x)gsub('\\s+', '', x)), .SDcols = Name_condition]
-  #  dataset<-dataset[ i==get(Name_condition) & get(Date_condition)<=get(End_date), (name):=1 ]
-  # }
+   dataset<-merge(Dataset_cohort,Dataset_events, by=choosen_key,all.x=T,allow.cartesian=T )
+
+  dataset<-dataset[get(Date_condition)<=value & in_population==1 & !is.na(get( Date_condition)),constant:=1][is.na(constant),constant:=0]
+  dataset<-dcast(dataset,person_id+entry_date+exit_date+value+in_population+cond_date~cond_name, value.var = "constant" ,fill=0)
+  dataset<-dataset[,"NA":=NULL]
   
-  name_nospaces<-gsub(" ", "",unique(Conditions))
-  cols<-paste0("prev_",name_nospaces)
+  cols_to_rename <- names(dataset)[names(dataset) %in% Conditions]
+  setnames(dataset, cols_to_rename, paste0("prev_",cols_to_rename))
 
-  dataset[,(Name_condition) := lapply(.SD, function(x)gsub('\\s+', '', x)), .SDcols = Name_condition]
-  dataset<-dataset[,(cols):=as.list(sub('.*_', '', cols))]
-  dataset<-dataset[,(cols) := lapply(.SD,function(x)ifelse(x==get(Name_condition)& get(Date_condition)<=value & in_population==1 & !is.na(get( Date_condition)) ,1,0)),.SDcols=cols]
 
-  dataset[,timeframe:=NULL]
   setnames(dataset,"value","timeframe")
-
+  cols<-paste0("prev_", Conditions)
   myvector<-c(UoO_id,key,Start_date,End_date,"timeframe","in_population",cols)
   dataset<-unique(dataset[,..myvector])
-  
-  
-  #dataset<-dataset[,(cols):=as.list(max(cols)),by=c("timeframe",UoO_id)]
-  dataset[,(cols) := lapply(.SD, function(x)max(x)), .SDcols = cols,by=c("timeframe",UoO_id)]
+
+
+  dataset<-dataset[,(cols) := lapply(.SD, function(x)max(x)), .SDcols = cols,by=c("timeframe",UoO_id)]
   dataset<-unique(dataset[,..myvector])
 }
 
   
   #esempio 2
-if (!is.null(Periods_of_time))  {
-  inizio<-unlist(lapply(Periods_of_time, `[[`, 1))
-  fine<-unlist(lapply(Periods_of_time, `[[`, 2))
-  
-  dataset<-melt(setDT(Dataset_cohort), id.vars = c(UoO_id,key,Start_date,End_date,Strata ), measure.vars = list(inizio,fine))
+  if (Type_prevalence=="of use") {
+    if (!is.null(Periods_of_time))  {
+      inizio<-unlist(lapply(Periods_of_time, `[[`, 1))
+      fine<-unlist(lapply(Periods_of_time, `[[`, 2))
 
-  dataset<-dataset[ !is.na(value1),]
-  for (t in 1:length(Periods_of_time))  dataset[variable==t ,variable:=paste0(Periods_of_time[[t]][[1]],"-", Periods_of_time[[t]][[2]])]
+      #Dataset_cohort<-rbindlist(lapply(c(inizio), function(x) data.frame(Dataset_cohort, value=x)))
+      
+      dataset<-melt(setDT(Dataset_cohort), id.vars = c(UoO_id,key,Start_date,End_date,Strata ), measure.vars = list(inizio,fine))
+    }else{
+      if (Increment_period!= "month") {
+        inizio<-seq.Date(Start_study_time,End_study_time ,by = Increment_period)
+        if (Increment=="week") {
+          fine=inizio+6
+          if (tail(inizio, n=1)>=End_study_time) {
+            fine<-fine[-length(fine)]
+            inizio<-inizio[-length(inizio)]
+          }
+        }
+        if (Increment=="day") {
+          fine=inizio+1
+          fine<-fine[-length(fine)]
+          inizio<-inizio[-length(inizio)]
+        }
+        if (Increment=="year") {
+          fine<-inizio-days(1)
+          fine<-c(fine,ymd(paste0(year(End_study_time),"1231")))
+          fine<-fine[-1]
+        }
+      }else{
+        inizio<-seq.Date(Start_study_time,End_study_time+month(1) ,by = Increment_period)
+        fine<-inizio-days(1)
+        fine<-fine[-1]
+        inizio<-inizio[-length(inizio)]
+        
+      }
 
-  dataset<-dataset[, in_population:=0 ]
-
-  #dataset<-dataset[value1<=ymd(Start_study_time) & value2>=ymd(Start_study_time) | value2>ymd(Start_study_time) & value2>=ymd(End_study_time) , in_population:=1 ]
-dataset<-dataset[value1>=ymd(Start_study_time) & value1<=ymd(Start_study_time) | value2>=ymd(Start_study_time) & value2<=ymd(End_study_time) , in_population:=1 ]
-
-  
-  if(!is.null(key)) {
-    dataset<-merge(dataset,Dataset_events, by=key,all.x=T,allow.cartesian=T)
-  }else{
-    dataset<-merge(dataset,Dataset_events, by=UoO_id,all.x=T,allow.cartesian=T )
+      #raggruppa per patologia e person_id
+      #tinei sol oquelle precedenti inizio studio
+      #fai massimo
+      #fai massimo tra le date per patologia rispetto al primo anno 
+      Dataset_cohort<-rbindlist(lapply(1:length(inizio), function(x) data.frame(Dataset_cohort, value1=inizio[[x]], value2=fine[[x]])))
+    }
+      
+      dataset<-dataset[ !is.na(value1),]
+      for (t in 1:length(Periods_of_time))  dataset[variable==t ,variable:=paste0(Periods_of_time[[t]][[1]],"-", Periods_of_time[[t]][[2]])]
+      
+      dataset<-dataset[, in_population:=0 ]
+      
+      #dataset<-dataset[value1<=ymd(Start_study_time) & value2>=ymd(Start_study_time) | value2>ymd(Start_study_time) & value2>=ymd(End_study_time) , in_population:=1 ]
+      dataset<-dataset[value1>=ymd(Start_study_time) & value1<=ymd(Start_study_time) | value2>=ymd(Start_study_time) & value2<=ymd(End_study_time) , in_population:=1 ]
+      
+      
+      if(!is.null(key)) {
+        dataset<-merge(dataset,Dataset_events, by=key,all.x=T,allow.cartesian=T)
+      }else{
+        dataset<-merge(dataset,Dataset_events, by=UoO_id,all.x=T,allow.cartesian=T )
+      }
+      
+      
+      # #name_nospaces<-gsub(" ", "",unique(Dataset_events[,get(Name_condition)]))
+      # name_nospaces<-Conditions
+      # for(i in  name_nospaces){
+      #   name<-paste0("prev_",i)
+      #   dataset[,(name):=0]
+      #   dataset[,c(Name_condition) := lapply(.SD, function(x)gsub('\\s+', '', x)), .SDcols = Name_condition]
+      #   dataset<-dataset[ i==get(Name_condition) & get(Date_condition)>=value1 & get(Date_condition)<=value2, (name):=1 ]
+      #}
+      
+      name_nospaces<-gsub(" ", "",unique(Conditions))
+      cols<-paste0("prev_",name_nospaces)
+      
+      dataset[,(Name_condition) := lapply(.SD, function(x)gsub('\\s+', '', x)), .SDcols = Name_condition]
+      dataset<-dataset[,(cols):=as.list(sub('.*_', '', cols))]
+      dataset<-dataset[,(cols) := lapply(.SD,function(x)ifelse(x==get(Name_condition)& get(Date_condition)>=value1 & get(Date_condition)<=value2 & in_population==1 & !is.na(get( Date_condition)) ,1,0)),.SDcols=cols]
+      
+      
+      setnames(dataset,"variable","timeframe")
+      myvector<-c(UoO_id,key,Start_date,End_date,"timeframe","in_population",cols,Strata)
+      dataset<-unique(dataset[,..myvector])
+      
+      
+      test_name<-paste0("prev_use_", name_nospaces)
+      for (i in 1:length(name_nospaces)){
+        dataset<-dataset[,test_name[[i]]:=max(get(cols[[i]])),by=c("timeframe",UoO_id,Strata)]
+      }
+      
+      # dataset <- dataset[, lapply(.SD, max), .SDcols = paste0("prev_use_", name_nospaces), by=c("timeframe",UoO_id)]
+      myvector<-c(UoO_id,key,Start_date,End_date,"timeframe","in_population",test_name,Strata)
+      dataset<-unique(dataset[,..myvector])
+    #}
+    
+    
   }
-
-
-  # #name_nospaces<-gsub(" ", "",unique(Dataset_events[,get(Name_condition)]))
-  # name_nospaces<-Conditions
-  # for(i in  name_nospaces){
-  #   name<-paste0("prev_",i)
-  #   dataset[,(name):=0]
-  #   dataset[,c(Name_condition) := lapply(.SD, function(x)gsub('\\s+', '', x)), .SDcols = Name_condition]
-  #   dataset<-dataset[ i==get(Name_condition) & get(Date_condition)>=value1 & get(Date_condition)<=value2, (name):=1 ]
-  #}
-
-name_nospaces<-gsub(" ", "",unique(Conditions))
-cols<-paste0("prev_",name_nospaces)
-
-dataset[,(Name_condition) := lapply(.SD, function(x)gsub('\\s+', '', x)), .SDcols = Name_condition]
-dataset<-dataset[,(cols):=as.list(sub('.*_', '', cols))]
-dataset<-dataset[,(cols) := lapply(.SD,function(x)ifelse(x==get(Name_condition)& get(Date_condition)>=value1 & get(Date_condition)<=value2 & in_population==1 & !is.na(get( Date_condition)) ,1,0)),.SDcols=cols]
-
-
-  setnames(dataset,"variable","timeframe")
-  myvector<-c(UoO_id,key,Start_date,End_date,"timeframe","in_population",cols,Strata)
-  dataset<-unique(dataset[,..myvector])
-  
-
-  test_name<-paste0("prev_use_", name_nospaces)
-  for (i in 1:length(name_nospaces)){
-    dataset<-dataset[,test_name[[i]]:=max(get(cols[[i]])),by=c("timeframe",UoO_id,Strata)]
-  }
-
-  # dataset <- dataset[, lapply(.SD, max), .SDcols = paste0("prev_use_", name_nospaces), by=c("timeframe",UoO_id)]
-  myvector<-c(UoO_id,key,Start_date,End_date,"timeframe","in_population",test_name,Strata)
-  dataset<-unique(dataset[,..myvector])
-}
 
   if (Type_prevalence=="period") {
   #Determine the ages at the beginning and end of all observation periods. Output is a starting point for calculation and splitting of
@@ -336,58 +374,18 @@ dataset<-dataset[,(cols) := lapply(.SD,function(x)ifelse(x==get(Name_condition)&
 
    }
 
-      
 
-#     dataset<-melt(setDT(Dataset_cohort), id.vars = c(UoO_id,key,Start_date,End_date,Strata ), measure.vars = list(inizio,fine))
-#   dataset<-dataset[ !is.na(value1),]
-#   for (t in 1:length(Periods_of_time))  dataset[variable==t ,variable:=paste0(Periods_of_time[[t]][[1]],"-", Periods_of_time[[t]][[2]])]
-#   
-#   dataset<-dataset[, in_population:=0 ]
-#   
-#   #dataset<-dataset[value1<=ymd(Start_study_time) & value2>=ymd(Start_study_time) | value2>ymd(Start_study_time) & value2>=ymd(End_study_time) , in_population:=1 ]
-#   dataset<-dataset[value1>=ymd(Start_study_time) & value1<=ymd(Start_study_time) | value2>=ymd(Start_study_time) & value2<=ymd(End_study_time) , in_population:=1 ]
-#   
-#   
-#   if(!is.null(key)) {
-#     dataset<-merge(dataset,Dataset_events, by=key,all.x=T,allow.cartesian=T)
-#   }else{
-#     dataset<-merge(dataset,Dataset_events, by=UoO_id,all.x=T,allow.cartesian=T )
-#   }
-#   
-#   
-#   # #name_nospaces<-gsub(" ", "",unique(Dataset_events[,get(Name_condition)]))
-#   # name_nospaces<-Conditions
-#   # for(i in  name_nospaces){
-#   #   name<-paste0("prev_",i)
-#   #   dataset[,(name):=0]
-#   #   dataset[,c(Name_condition) := lapply(.SD, function(x)gsub('\\s+', '', x)), .SDcols = Name_condition]
-#   #   dataset<-dataset[ i==get(Name_condition) & get(Date_condition)>=value1 & get(Date_condition)<=value2, (name):=1 ]
-#   #}
-#   
-#   name_nospaces<-gsub(" ", "",unique(Conditions))
-#   cols<-paste0("prev_",name_nospaces)
-#   
-#   dataset[,(Name_condition) := lapply(.SD, function(x)gsub('\\s+', '', x)), .SDcols = Name_condition]
-#   dataset<-dataset[,(cols):=as.list(sub('.*_', '', cols))]
-#   dataset<-dataset[,(cols) := lapply(.SD,function(x)ifelse(x==get(Name_condition)& get(Date_condition)>=value1 & get(Date_condition)<=value2 & in_population==1 & !is.na(get( Date_condition)) ,1,0)),.SDcols=cols]
-#   
-#   
-#   setnames(dataset,"variable","timeframe")
-#   myvector<-c(UoO_id,key,Start_date,End_date,"timeframe","in_population",cols,Strata)
-#   dataset<-unique(dataset[,..myvector])
-#   
-#   
-#   test_name<-paste0("prev_use_", name_nospaces)
-#   for (i in 1:length(name_nospaces)){
-#     dataset<-dataset[,test_name[[i]]:=max(get(cols[[i]])),by=c("timeframe",UoO_id,Strata)]
-#   }
-#   
-#   # dataset <- dataset[, lapply(.SD, max), .SDcols = paste0("prev_use_", name_nospaces), by=c("timeframe",UoO_id)]
-#   myvector<-c(UoO_id,key,Start_date,End_date,"timeframe","in_population",test_name,Strata)
-#   dataset<-unique(dataset[,..myvector])
   }
   
-  return(Dataset_cohort)
+
+  if (Aggregate == T) {
+    Aggr_variables<-c("timeframe")
+    if (!is.null(Age_bands)) Aggr_variables<-c("Ageband")
+    if (!is.null(Strata)) Aggr_variables<-c(Strata)
+     dataset <- dataset[, lapply(.SD, sum), .SDcols=cols, by  = Aggr_variables]
+  }
+  
+  return(dataset)
 }
 
 
