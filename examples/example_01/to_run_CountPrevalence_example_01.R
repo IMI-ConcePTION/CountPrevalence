@@ -54,8 +54,8 @@ prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        End_date = "exit_date",
                                        Name_condition = "cond_name",
                                        Date_condition = "cond_date",
-                                       Conditions = c("hypertension","cardiovascular diseaese"),
-                                       Aggregate = T
+                                       Conditions = c("hypertension","cardiovascular disease"),
+                                       Aggregate = F
 )
 
 
