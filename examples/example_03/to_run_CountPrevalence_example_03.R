@@ -37,12 +37,15 @@ conditions[,(date_cond) := lapply(.SD,as.Date),.SDcols = date_cond]
 
 
 
+
 #USE THE FUNCTION 
 
 prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        Dataset_events = conditions,
                                        UoO_id = c("person_id"),
                                        Type_prevalence = "period",
+                                       #Periods_of_time = list(c("20170101","20171123"),c("20180101","20181123"),c("20190101","20191123")),
+                                       #Periods_of_time = list(c("entry_date","exit_date")),
                                        Increment_period = "year",
                                        Start_study_time = "20050101",
                                        End_study_time = "20191231",
