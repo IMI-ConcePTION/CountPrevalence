@@ -27,7 +27,7 @@ library(lubridate)
 cohort <- fread(paste0(thisdir,"/input/cohort.csv"), sep = ",")
 conditions <- fread(paste0(thisdir,"/input/conditions.csv"), sep = ",")
 
-date_cols <- c("entry_date","exit_date")
+date_cols <- c("entry_date","exit_date","index_date")
 cohort[,(date_cols) := lapply(.SD,as.character),.SDcols = date_cols]
 cohort[,(date_cols) := lapply(.SD,as.Date),.SDcols = date_cols]
 
@@ -47,7 +47,8 @@ prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        UoO_id = c("person_id"),
                                        Type_prevalence = "point",
                                        Increment = "year",
-                                       #Points_in_time = c("entry_date","exit_date"),
+                                       #Points_in_time = c("index_date"),
+                                       #Points_in_time = c("20190511", "20180224"),
                                        Start_study_time = "20190101",
                                        End_study_time = "20220101",
                                        Start_date = "entry_date",
