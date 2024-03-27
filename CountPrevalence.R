@@ -39,6 +39,7 @@ CountPrevalence <- function(Dataset_cohort, Dataset_events, UoO_id,key=NULL,Star
   
   #keep only the columns of interest in the Dataset_events
   cols_to_keep_events=c(choosen_key,Name_condition,Date_condition)
+  if(!is.null(Date_end_condition)) cols_to_keep_events<-c(cols_to_keep_events,Date_end_condition)
   Dataset_events<-unique(Dataset_events[,cols_to_keep_events,with=F])
   
   #keep only the columns of interest in the Dataset_cohort
@@ -290,9 +291,14 @@ CountPrevalence <- function(Dataset_cohort, Dataset_events, UoO_id,key=NULL,Star
     
     dataset<-merge(Dataset_cohort,Dataset_events, by=choosen_key,all.x=T,allow.cartesian=T )
     rm(Dataset_cohort, Dataset_events)
-    
+
     dataset <- split(dataset, by = "in_population")
-    dataset[["1"]]<-dataset[["1"]][get(Date_condition)<=value & in_population==1 & !is.na(get( Date_condition)),constant:=1][is.na(constant),constant:=0]
+    if (!is.null(Date_end_condition)) {
+      dataset[["1"]]<-dataset[["1"]][get(Date_condition)<=value & get(Date_end_condition)>= value & in_population==1 & !is.na(get( Date_condition)),constant:=1][is.na(constant),constant:=0]
+    }else{
+      dataset[["1"]]<-dataset[["1"]][get(Date_condition)<=value  & in_population==1 & !is.na(get( Date_condition)),constant:=1][is.na(constant),constant:=0]
+    }
+
     
     dcast_vars=c(id_columns_tokeep,Start_date,End_date,"value","in_population",Date_condition)
     if (!is.null(Age_bands)) dcast_vars<-c(dcast_vars,"Ageband")
@@ -581,8 +587,12 @@ CountPrevalence <- function(Dataset_cohort, Dataset_events, UoO_id,key=NULL,Star
     # Dataset_events<-merge(Dataset_events,Dataset_cohort[,.(choosen_key,Start_date)],all.x=T,by=choosen_key)
     
     #add the information on diagnosis (Dataset_events)
-    
-    Dataset_events[,cond_date2:=as.IDate(End_study_time)]
+    if(!is.null(Date_end_condition)) {
+      Dataset_events[,cond_date2:=as.IDate(get(Date_end_condition))]
+    }else{
+      Dataset_events[,cond_date2:=as.IDate(End_study_time)]
+    }
+
     Dataset_events[,(Date_condition):=as.IDate(get(Date_condition))]
     setkeyv(Dataset_events,c(choosen_key,Date_condition,"cond_date2"))
     
@@ -591,7 +601,7 @@ CountPrevalence <- function(Dataset_cohort, Dataset_events, UoO_id,key=NULL,Star
     
     setkeyv(Dataset_cohort,c(choosen_key,"value1","value2"))
     dataset<-foverlaps(Dataset_cohort,Dataset_events)
-    
+
     dataset[,cond_date2:=NULL]
     
     #if the subject is not in population remove his Date_condition and Name_condition

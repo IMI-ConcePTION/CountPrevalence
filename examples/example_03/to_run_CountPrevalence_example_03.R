@@ -26,6 +26,7 @@ library(lubridate)
 cohort <- fread(paste0(thisdir,"/input/cohort.csv"), sep = ",")
 conditions <- fread(paste0(thisdir,"/input/conditions.csv"), sep = ",")
 
+
 date_cols <- c("entry_date","exit_date","birth_date")
 
 cohort[,(date_cols) := lapply(.SD,as.character),.SDcols = date_cols]
@@ -34,7 +35,7 @@ cohort[,(date_cols) := lapply(.SD,as.Date),.SDcols = date_cols]
 date_cond<-c("cond_date")
 conditions[,(date_cond) := lapply(.SD,as.character),.SDcols = date_cond]
 conditions[,(date_cond) := lapply(.SD,as.Date),.SDcols = date_cond]
-
+conditions[,condition_end:=cond_date+10 ]
 
 
 
@@ -57,6 +58,7 @@ prevalent_individual = CountPrevalence(Dataset_cohort = cohort,
                                        Name_condition = "cond_name",
                                        Date_condition = "cond_date",
                                        Conditions = c("multiple sclerosis"),
+                                       Date_end_condition="condition_end",
                                        Aggregate = FALSE
 )
 
